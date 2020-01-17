@@ -10,4 +10,4 @@ currently calculates and plots the following for Twitter hashtag popularity in L
 * Turnover in top ranked list vs time
 * Total daily sampled hashtag vs time
 * Turnover in top ranked list vs Total daily sampled hashtag
-* power law exponent ($\alpha$) vs time
+* power law exponent (\alpha) vs time
