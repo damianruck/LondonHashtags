@@ -14,6 +14,6 @@ turnover = self.derive_turnover_matrix(list_size,num_increments)
 Nt = self.get_daily_sample_size()
 daily_sample_size=self.get_daily_sample_size()
 powerlaw_fit=self.get_powerlaw_fit()
-daily_alpha=self.get_daily_alpha()
+daily_alpha,daily_sigma=self.get_daily_alpha()
 
 self.summary_plot('plots/')

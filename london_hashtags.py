@@ -87,12 +87,15 @@ class london_hashtags:
     def get_daily_alpha(self):
 
         def calculate_daily_powerlaw(df):
-            return powerlaw.Fit(df['count'],verbose=False).alpha
+            fit=powerlaw.Fit(df['count'],verbose=False)
+            return pd.Series([fit.alpha, fit.sigma],index=['alpha','sigma'])
 
-        #calculate the power law exponent for each day
-        self.daily_alpha = self.data.groupby('date').apply(calculate_daily_powerlaw)
+        df2=self.data.groupby('date').apply(calculate_daily_powerlaw)
 
-        return self.daily_alpha
+        self.daily_alpha = df2['alpha']
+        self.daily_sigma = df2['sigma'] #also collect the daily statistical errors
+
+        return self.daily_alpha,self.daily_sigma
     
     
     ### indivual methods for the plots ####
@@ -206,7 +209,7 @@ class london_hashtags:
         #power law line of best fit
         yfit = predicted_y(x,self.powerlaw_fit)
 
-        ax.loglog(x,y,'s',lw=3,label='data hist')
+        ax.loglog(x,y,'s',lw=3,label='data histogram')
         ax.loglog(x,yfit,'--',lw=2,c='darkred',label=r'power law fit ($\alpha$= ' + str(np.round(self.alpha,2)) + ')')
 
         ax.set_xlabel('hashtag frequency',fontsize=16)
@@ -224,12 +227,18 @@ class london_hashtags:
         date_marks = pd.to_datetime(pd.Series(['2017','2018','2019','2020']))
         date_labels = date_marks.dt.year
 
-        ax.plot(self.daily_alpha)
+        ax.plot(self.daily_alpha.index,self.daily_alpha,label=r'$\alpha$')
+        ax.fill_between(self.daily_alpha.index, 
+                        self.daily_alpha-self.daily_sigma, 
+                        self.daily_alpha+self.daily_sigma, alpha=0.5,label='std. err.')
+
 
         ax.set_xticks(date_marks)
         ax.set_xticklabels(date_labels)
         ax.set_ylabel(r'$\alpha$',fontsize=20,rotation=0)
         ax.set_xlabel('year',fontsize=16)
+
+        ax.legend(fontsize=14)
 
         return ax
     
