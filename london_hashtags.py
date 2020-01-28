@@ -4,12 +4,17 @@ import powerlaw
 import os
 import pandas as pd
 import statsmodels.api as sm
-
+import datetime
 
 class london_hashtags:
-    def __init__(self,path):
-        df = pd.read_csv(path)#,nrows=200000)
+    def __init__(self,path,start_date):
+        self.minimum_daily_sample_size = 4000 #default sample size cutoff
+        
+        df = pd.read_csv(path)#,nrows=2000000)
         df['date'] = pd.to_datetime(df['date'])
+        
+        #include only dates after 'start_date'
+        df = df[df['date'] >= start_date]
         self.data = df
         
     def print_summary_stats(self):
@@ -139,8 +144,8 @@ class london_hashtags:
         ax.plot(self.turnover_matrix[self.list_size],alpha=0.7)
 
         # Now set the ticks and labels
-        ax.set_xticks(ticks_to_use)
-        ax.set_xticklabels(labels)
+        ax.set_xticks(self.date_marks)
+        ax.set_xticklabels(self.date_labels)
 
         ax.set_xlabel('year',fontsize=16)
         ax.set_ylabel('turnover (top ' + str(self.list_size) + ')',fontsize=16)
@@ -151,18 +156,13 @@ class london_hashtags:
 
         if hasattr(self,'daily_sample_size') == False:
             self.get_daily_sample_size()
-
-        #HARD WIRED DATE TICKS
-        ticks_to_use = pd.Series([pd.to_datetime('2017'),pd.to_datetime('2018'),
-                                  pd.to_datetime('2019'),pd.to_datetime('2020')])
-
-        labels = ticks_to_use.dt.year
-
+            
+            
         ax.plot(self.daily_sample_size.index,self.daily_sample_size,'-')
         ax.set_ylabel('sample size',fontsize=16)
         ax.set_xlabel('year',fontsize=16)
-        ax.set_xticks(ticks_to_use)
-        ax.set_xticklabels(labels)
+        ax.set_xticks(self.date_marks)
+        ax.set_xticklabels(self.date_labels)
 
         return ax
 
@@ -224,8 +224,6 @@ class london_hashtags:
         if hasattr(self,'daily_alpha') == False:
             self.get_daily_alpha()
 
-        date_marks = pd.to_datetime(pd.Series(['2017','2018','2019','2020']))
-        date_labels = date_marks.dt.year
 
         ax.plot(self.daily_alpha.index,self.daily_alpha,label=r'$\alpha$')
         ax.fill_between(self.daily_alpha.index, 
@@ -233,8 +231,8 @@ class london_hashtags:
                         self.daily_alpha+self.daily_sigma, alpha=0.5,label='std. err.')
 
 
-        ax.set_xticks(date_marks)
-        ax.set_xticklabels(date_labels)
+        ax.set_xticks(self.date_marks)
+        ax.set_xticklabels(self.date_labels)
         ax.set_ylabel(r'$\alpha$',fontsize=20,rotation=0)
         ax.set_xlabel('year',fontsize=16)
 
@@ -243,7 +241,6 @@ class london_hashtags:
         return ax
     
     def summary_plot(self,save_directory):
-        print(save_directory)
 
         plt.style.use('tableau-colorblind10')
 
@@ -261,4 +258,50 @@ class london_hashtags:
             os.makedirs(save_directory)
 
         plt.savefig(save_directory+'summary_plots.pdf')
+        
     ###end plots ######
+    
+    def date_ticks(self,list_of_years):
+        self.date_marks = pd.to_datetime(pd.Series(list_of_years))
+        self.date_labels = self.date_marks.dt.year
+        
+    def remove_low_sample_days(self,dates_to_remove=None):
+        
+        if dates_to_remove is None:# if no preset dates to remove
+            prefiltering_daily_sample_size = self.get_daily_sample_size() 
+            dates_to_remove = prefiltering_daily_sample_size[(prefiltering_daily_sample_size < self.minimum_daily_sample_size)['count']].index
+
+        self.data=self.data.drop(self.data[self.data['date'].isin(dates_to_remove)].index)
+        
+        
+    def graphically_choose_new_sample_size_cutoff(self):
+        
+        prefiltering_daily_sample_size = self.get_daily_sample_size() 
+
+        plt.style.use('tableau-colorblind10')
+        f, ax  = plt.subplots()
+
+        ax.plot(prefiltering_daily_sample_size['count'].sort_values().values,'o')
+        ax.set_ylabel('sample size',fontsize=16)
+        ax.set_xlabel('day rank',fontsize=16)
+
+        ax.set_title('Choose a minimum sample size cutoff?',fontsize=16)
+        xy = plt.ginput(1)
+        self.minimum_daily_sample_size = xy[0][1]
+        print('new minimum sample size:' + str(np.round(self.minimum_daily_sample_size,0)))
+        plt.show()
+        
+    def powerlaw_or_positive_lognormal(self):
+
+        if hasattr(self,'powerlaw_fit') == False:
+            self.get_powerlaw_fit()
+
+        dist1='power_law'
+        dist2='lognormal_positive'
+
+        R,p = self.powerlaw_fit.distribution_compare(dist1,dist2)
+
+        if R > 0: most_likely_dist = dist1
+        if R <= 0: most_likely_dist = dist2
+
+        print('LLR = ' + str(np.round(R,2)) + ', p value = ' + str(np.round(p,2)) + ', most likely distribution is ' + most_likely_dist)
