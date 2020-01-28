@@ -17,8 +17,5 @@ Looks for statsical signitures of social learning in the data, including right s
 
 
 # Things to do
-* test if power law distribution is best explanation for frequency distribution of hashtags (test against other skewed distributions, such as lognormal)
 * Correct for the dependence of turnover in the top 100 list on sample size.
-* Identify days with low hashtag sample sizes
 * Heaps Law (need Tweet data)
-* Begin time series in January 2018 due for gradually rolled out changes on Twitter in late 2017. 
