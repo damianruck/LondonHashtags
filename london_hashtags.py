@@ -17,6 +17,14 @@ class london_hashtags:
         df = df[df['date'] >= start_date]
         self.data = df
         
+    def round_dates_to_weekstarting(self):
+        def round_dates_to_week_starting_function(df):
+            df['date'] = df['date'] - pd.Timedelta('1d') * df['date'].dt.dayofweek
+            df['date'] = pd.to_datetime(df['date'].dt.date)
+            return df
+
+        return self.data.pipe(round_dates_to_week_starting_function)
+        
     def print_summary_stats(self):
         print('# hashtag-days:',len(self.data.index))
         print('date range:',self.data['date'].min(),self.data['date'].max())
